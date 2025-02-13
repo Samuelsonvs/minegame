@@ -63,7 +63,7 @@ export class Game extends Scene {
         const height = this.scale.gameSize.height;
 
         this.gridConfiguration = {
-            x: (this.GAME_WIDTH - (4 * 98 + 3 * 10)) / 2, // Dynamically centered
+            x: (this.GAME_WIDTH - (4 * 98 + 3 * 10)) / 2,
             y: 150,
             paddingX: 10,
             paddingY: 15,
@@ -145,7 +145,6 @@ export class Game extends Scene {
     }
 
     createGridCards() {
-        // Phaser random array position
         const gridCardNames = Utils.Array.Shuffle(Object.keys(this.cardNames));
 
         return gridCardNames.map((name, index) => {
@@ -161,7 +160,6 @@ export class Game extends Scene {
                 targets: newCard.gameObject,
                 duration: 800,
                 delay: index * 100,
-                //onStart: () => this.sound.play("card-slide", { volume: 1.2 }),
                 y:
                     this.gridConfiguration.y +
                     (128 + this.gridConfiguration.paddingY) *
@@ -173,8 +171,6 @@ export class Game extends Scene {
 
     generateCards() {
         this.cards = this.createGridCards();
-
-        // Start canMove
         this.time.addEvent({
             delay: 200 * this.cards.length,
             callback: () => {
@@ -204,9 +200,8 @@ export class Game extends Scene {
                 const card = this.cards.find((card: any) =>
                     card.gameObject.hasFaceAt(pointer.x, pointer.y)
                 );
-                if (card) {
+                if (card && !this.cardNames[card.cardName].isOpen) {
                     this.canMove = false;
-                    if (!this.cardNames[card.cardName].isOpen) {
                         this.cardNames[card.cardName].isOpen = true;
                         card.flip(() => {
                             if (
@@ -246,38 +241,25 @@ export class Game extends Scene {
                                 });
                             }
                         }, this.cardNames[card.cardName].front);
-                    } else if (
-                        this.cardOpened === undefined &&
-                        this.cards.length > 0
-                    ) {
-                        card.flip(() => {
-                            this.canMove = true;
-                        }, "cardback");
-                    }
                 }
             }
         });
     }
 
     openRandomCard(setter:Dispatch<SetStateAction<boolean>>) {
-        if (!this.canMove) return; // Prevents interaction if not allowed
+        if (!this.canMove) return;
 
-        // Get all unopened cards
         const unopenedCards = this.cards.filter(
             (card:any) => !this.cardNames[card.cardName].isOpen
         );
 
-        // If there are no more unopened cards, do nothing
         if (unopenedCards.length === 0) return;
 
-        // Pick a random unopened card
         const randomCard =
             unopenedCards[Math.floor(Math.random() * unopenedCards.length)];
 
-        // Mark it as opened
         this.cardNames[randomCard.cardName].isOpen = true;
 
-        // Flip the card
         randomCard.flip(() => {
             if (this.cardNames[randomCard.cardName].front === "diamond") {
                 const diamond = this.make.image({
@@ -339,7 +321,6 @@ export class Game extends Scene {
 
     cashOut(statusSetter:Dispatch<SetStateAction<boolean>>) {
         if (!this.canMove) return;
-        // Create a dark overlay
         this.canMove = false;
         this.cards.forEach((card: any) => {
             if (!this.cardNames[card.cardName].isOpen) {
@@ -350,15 +331,12 @@ export class Game extends Scene {
         overlay.fillStyle(0x000000, 0.6);
         overlay.fillRect(0, 0, this.GAME_WIDTH, this.GAME_HEIGHT);
 
-        // Center position
         const centerX = this.GAME_WIDTH / 2;
         const centerY = this.GAME_HEIGHT / 2;
 
-        // Create a diamond image
         const diamond = this.add.image(centerX - 80, centerY, "diamond-alone");
         diamond.setScale(0.8);
 
-        // Create text for multiplication calculation
         this.add.text(
             centerX - 40,
             centerY - 10,
@@ -371,7 +349,6 @@ export class Game extends Scene {
             }
         );
 
-        // Delay before restarting the game
         this.time.delayedCall(2000, () => {
             this.resetGame(statusSetter);
         });
