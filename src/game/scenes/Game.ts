@@ -22,45 +22,24 @@ export class Game extends Scene {
     };
     score = 1;
     bet = 0;
-   
-
-    cardNames:Record<string, { front: string; isOpen: boolean }> = {
-        "card-0": { front: "diamond", isOpen: false },
-        "card-1": { front: "diamond", isOpen: false },
-        "card-2": { front: "diamond", isOpen: false },
-        "card-3": { front: "diamond", isOpen: false },
-        "card-4": { front: "diamond", isOpen: false },
-        "card-5": { front: "diamond", isOpen: false },
-        "card-6": { front: "diamond", isOpen: false },
-        "card-7": { front: "diamond", isOpen: false },
-        "card-8": { front: "diamond", isOpen: false },
-        "card-9": { front: "diamond", isOpen: false },
-        "card-10": { front: "diamond", isOpen: false },
-        "card-11": { front: "diamond", isOpen: false },
-        "card-12": { front: "diamond", isOpen: false },
-        "card-13": { front: "diamond", isOpen: false },
-        "card-14": { front: "diamond", isOpen: false },
-        "card-15": { front: "diamond", isOpen: false },
-        "card-16": { front: "diamond", isOpen: false },
-        "card-17": { front: "diamond", isOpen: false },
-        "card-18": { front: "diamond", isOpen: false },
-        "card-19": { front: "diamond", isOpen: false },
-        "card-20": { front: "diamond", isOpen: false },
-        "card-21": { front: "diamond", isOpen: false },
-        "card-22": { front: "diamond", isOpen: false },
-        "card-23": { front: "diamond", isOpen: false },
-        "card-24": { front: "diamond", isOpen: false },
-    };
-    cardOpened = undefined;
-    cards: [] | any = [];
+    cardNames:Record<string, { front: string; isOpen: boolean }> = {};
+    cards: any[] = [];
     canMove = false;
     constructor() {
         super("Game");
     }
 
     create() {
-        const width = this.scale.gameSize.width;
-        const height = this.scale.gameSize.height;
+        this.initializeGame();
+        this.createUI();
+        this.generateCards();
+        EventBus.emit("current-scene-ready", this);
+    }
+
+
+    private initializeGame() {
+        this.cardNames = Array.from({ length: 25 }, (_, i) => `card-${i}`)
+            .reduce((acc, key) => ({ ...acc, [key]: { front: "diamond", isOpen: false } }), {});
 
         this.gridConfiguration = {
             x: (this.GAME_WIDTH - (4 * 98 + 3 * 10)) / 2,
@@ -69,73 +48,55 @@ export class Game extends Scene {
             paddingY: 15,
         };
 
-        this.background = this.add.image(0, 0, "background").setOrigin(0, 0);
-
-        this.background.setDisplaySize(this.GAME_WIDTH, this.GAME_HEIGHT);
-
-        this.make.image({
-            x: 50,
-            y: 50,
-            key: "diamond-alone",
-            add: true,
-            scale: { x: 0.4, y: 0.4 },
-        });
-
-        this.userScoreText = this.add.text(70, 42, `${this.score}`, {
-            fontFamily: "Arial",
-            fontSize: 14,
-            color: "#e3f2ed",
-        });
-
-        this.generateCards();
-
-        this.parent = new Structs.Size(width, height);
-        this.sizer = new Structs.Size(
-            this.GAME_WIDTH,
-            this.GAME_HEIGHT,
-            Structs.Size.FIT,
-            this.parent
-        );
-
-        this.parent.setSize(width, height);
-        this.sizer.setSize(width, height);
+        this.parent = new Structs.Size(this.scale.gameSize.width, this.scale.gameSize.height);
+        this.sizer = new Structs.Size(this.GAME_WIDTH, this.GAME_HEIGHT, Structs.Size.FIT, this.parent);
 
         this.updateCamera();
-
-        // Resize handler
         this.scale.on("resize", this.resize, this);
-
-        EventBus.emit("current-scene-ready", this);
     }
-    updateCamera() {
+
+
+    private createUI() {
+        this.background = this.add.image(0, 0, "background").setOrigin(0, 0);
+        this.background.setDisplaySize(this.GAME_WIDTH, this.GAME_HEIGHT);
+
+        this.add.image(50, 50, "diamond-alone").setScale(0.4);
+
+        this.userScoreText = this.add.text(70, 42, this.score.toString(), {
+            fontFamily: "Arial",
+            fontSize: "14px",
+            color: "#e3f2ed",
+        });
+    }
+
+    private updateCamera() {
         const camera = this.cameras.main;
-        const x = Math.ceil((this.parent.width - this.sizer.width) * 0.5);
-        const y = 0;
-        const scaleX = this.sizer.width / this.GAME_WIDTH;
-        const scaleY = this.sizer.height / this.GAME_HEIGHT;
-        camera.setViewport(x, y, this.sizer.width, this.sizer.height);
-        camera.setZoom(Math.max(scaleX, scaleY));
+        camera.setViewport(
+            Math.ceil((this.parent.width - this.sizer.width) * 0.5),
+            0,
+            this.sizer.width,
+            this.sizer.height
+        );
+        camera.setZoom(Math.max(this.sizer.width / this.GAME_WIDTH, this.sizer.height / this.GAME_HEIGHT));
         camera.centerOn(this.GAME_WIDTH / 2, this.GAME_HEIGHT / 2);
     }
 
-    resize(gameSize: any) {
-        const width = gameSize.width;
-        const height = gameSize.height;
-
-        this.parent.setSize(width, height);
-        this.sizer.setSize(width, height);
-
+    private resize(gameSize: any) {
+        this.parent.setSize(gameSize.width, gameSize.height);
+        this.sizer.setSize(gameSize.width, gameSize.height);
         this.updateCamera();
     }
 
-    shuffleArray(array:string[]) {
+
+
+    private shuffleArray(array:string[]) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
         }
     }
 
-    setRandomCardsToFront(count: number) {
+    private setRandomCardsToFront(count: number) {
         const keys = Object.keys(this.cardNames);
         this.shuffleArray(keys);
 
@@ -144,7 +105,7 @@ export class Game extends Scene {
         }
     }
 
-    createGridCards() {
+    private createGridCards() {
         const gridCardNames = Utils.Array.Shuffle(Object.keys(this.cardNames));
 
         return gridCardNames.map((name, index) => {
@@ -169,7 +130,7 @@ export class Game extends Scene {
         });
     }
 
-    generateCards() {
+    private generateCards() {
         this.cards = this.createGridCards();
         this.time.addEvent({
             delay: 200 * this.cards.length,
@@ -182,123 +143,66 @@ export class Game extends Scene {
     startGame(bombNum: number, bet: number, setter:Dispatch<SetStateAction<boolean>>) {
         this.setRandomCardsToFront(bombNum);
         this.bet = bet;
-        this.input.on(Input.Events.POINTER_MOVE, (pointer: any) => {
-            if (this.canMove) {
-                const card = this.cards.find((card: any) =>
-                    card.gameObject.hasFaceAt(pointer.x, pointer.y)
-                );
-                if (card) {
-                    this.input.setDefaultCursor("pointer");
-                } else {
-                    this.input.setDefaultCursor("default");
-                }
-            }
+        this.input.on(Input.Events.POINTER_MOVE, (pointer:any) => {
+            this.input.setDefaultCursor(this.cards.some(card => card.gameObject.hasFaceAt(pointer.x, pointer.y)) ? "pointer" : "default");
         });
 
-        this.input.on(Input.Events.POINTER_DOWN, (pointer: any) => {
-            if (this.canMove && this.cards.length) {
-                const card = this.cards.find((card: any) =>
-                    card.gameObject.hasFaceAt(pointer.x, pointer.y)
-                );
-                if (card && !this.cardNames[card.cardName].isOpen) {
-                    this.canMove = false;
-                        this.cardNames[card.cardName].isOpen = true;
-                        card.flip(() => {
-                            if (
-                                this.cardNames[card.cardName].front ===
-                                "diamond"
-                            ) {
-                                const diamond = this.make.image({
-                                    x: card.gameObject.x,
-                                    y: card.gameObject.y,
-                                    key: "diamond-alone",
-                                    add: true,
-                                });
-                                this.add.tween({
-                                    targets: diamond,
-                                    duration: 300,
-                                    delay: 100,
-                                    x: 50,
-                                    y: 50,
-                                    onComplete: () => {
-                                        this.score *= 2;
-                                        this.userScoreText.setText(`${this.score}`);
-                                        diamond.destroy();
-                                    },
-                                });
+        this.input.on(Input.Events.POINTER_DOWN, (pointer:any) => {
+            if (!this.canMove) return;
+            const card = this.cards.find(card => card.gameObject.hasFaceAt(pointer.x, pointer.y));
+            if (card) this.handleCardSelection(card, setter);
+        });
+    }
 
-                                this.canMove = true;
-                            } else {
-                                this.cameras.main.shake(600, 0.01);
-                                this.input.setDefaultCursor("default");
-                                this.canMove = false;
-                                this.cards.forEach((card:any) => {
-                                    if (!this.cardNames[card.cardName].isOpen) {
-                                        card.flip(() => {
-                                            this.resetGame(setter);
-                                        }, this.cardNames[card.cardName].front);
-                                    }
-                                });
-                            }
-                        }, this.cardNames[card.cardName].front);
-                }
+    private handleCardSelection(card: any, setter:Dispatch<SetStateAction<boolean>>) {
+        if (this.cardNames[card.cardName].isOpen) return;
+        this.canMove = false;
+        this.cardNames[card.cardName].isOpen = true;
+        card.flip(() => {
+            if (this.cardNames[card.cardName].front === "diamond") {
+                this.handleDiamondCard(card);
+            } else {
+                this.handleBombCard(setter);
+            }
+        }, this.cardNames[card.cardName].front);
+    }
+
+    private handleDiamondCard(card: any) {
+        const diamond = this.make.image({ x: card.gameObject.x, y: card.gameObject.y, key: "diamond-alone", add: true });
+        this.add.tween({
+            targets: diamond,
+            duration: 300,
+            delay: 100,
+            x: 50,
+            y: 50,
+            onComplete: () => {
+                this.score *= 2;
+                this.userScoreText.setText(this.score.toString());
+                diamond.destroy();
+                this.canMove = true;
+            },
+        });
+    }
+
+
+    private handleBombCard(setter:Dispatch<SetStateAction<boolean>>) {
+        this.cameras.main.shake(600, 0.01);
+        this.canMove = false;
+        this.cards.forEach(card => {
+            if (!this.cardNames[card.cardName].isOpen) {
+                card.flip(() => { this.resetGame(setter); }, this.cardNames[card.cardName].front);
             }
         });
     }
 
     openRandomCard(setter:Dispatch<SetStateAction<boolean>>) {
         if (!this.canMove) return;
-
-        const unopenedCards = this.cards.filter(
-            (card:any) => !this.cardNames[card.cardName].isOpen
-        );
-
+        const unopenedCards = this.cards.filter(card => !this.cardNames[card.cardName].isOpen);
         if (unopenedCards.length === 0) return;
-
-        const randomCard =
-            unopenedCards[Math.floor(Math.random() * unopenedCards.length)];
-
-        this.cardNames[randomCard.cardName].isOpen = true;
-
-        randomCard.flip(() => {
-            if (this.cardNames[randomCard.cardName].front === "diamond") {
-                const diamond = this.make.image({
-                    x: randomCard.gameObject.x,
-                    y: randomCard.gameObject.y,
-                    key: "diamond-alone",
-                    add: true,
-                });
-
-                this.add.tween({
-                    targets: diamond,
-                    duration: 300,
-                    delay: 100,
-                    x: 50,
-                    y: 50,
-                    onComplete: () => {
-                        this.score *= 2;
-                        this.userScoreText.setText(`${this.score}`);
-                        diamond.destroy();
-                    },
-                });
-
-                this.canMove = true;
-            } else {
-                this.cameras.main.shake(600, 0.01);
-                this.input.setDefaultCursor("default");
-                this.canMove = false;
-                this.cards.forEach((card:any) => {
-                    if (!this.cardNames[card.cardName].isOpen) {
-                        card.flip(() => {
-                            this.resetGame(setter);
-                        }, this.cardNames[card.cardName].front);
-                    }
-                });
-            }
-        }, this.cardNames[randomCard.cardName].front);
+        this.handleCardSelection(unopenedCards[Math.floor(Math.random() * unopenedCards.length)], setter);
     }
 
-    resetGame(statusSetter:Dispatch<SetStateAction<boolean>>) {
+    private resetGame(statusSetter:Dispatch<SetStateAction<boolean>>) {
         this.time.delayedCall(1000, () => {
             Object.keys(this.cardNames).forEach((key) => {
                 this.cardNames[key].isOpen = false;
@@ -308,7 +212,6 @@ export class Game extends Scene {
                 card.flip(() => {}, "cardback");
             });
             this.score = 1;
-            this.cardOpened = undefined;
             this.canMove = false;
             this.userScoreText.setText(`${this.score}`);
         });
