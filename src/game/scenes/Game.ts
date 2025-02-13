@@ -31,13 +31,12 @@ export class Game extends Scene {
 
     create() {
         this.initializeGame();
-        this.createUI();
-        this.generateCards();
         EventBus.emit("current-scene-ready", this);
     }
 
-
     private initializeGame() {
+        const width = this.scale.gameSize.width;
+        const height = this.scale.gameSize.height;
         this.cardNames = Array.from({ length: 25 }, (_, i) => `card-${i}`)
             .reduce((acc, key) => ({ ...acc, [key]: { front: "diamond", isOpen: false } }), {});
 
@@ -47,10 +46,12 @@ export class Game extends Scene {
             paddingX: 10,
             paddingY: 15,
         };
-
-        this.parent = new Structs.Size(this.scale.gameSize.width, this.scale.gameSize.height);
+        this.createUI();
+        this.generateCards();
+        this.parent = new Structs.Size(width, height);
         this.sizer = new Structs.Size(this.GAME_WIDTH, this.GAME_HEIGHT, Structs.Size.FIT, this.parent);
-
+        this.parent.setSize(width, height);
+        this.sizer.setSize(width, height);
         this.updateCamera();
         this.scale.on("resize", this.resize, this);
     }
